@@ -13,18 +13,19 @@ export default function BottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur border-t border-gray-200 flex z-50">
+    <nav aria-label="메인 탭" className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur border-t border-gray-200 flex z-50">
       {tabs.map((tab) => {
-        const active = pathname.startsWith(tab.href)
+        const active = pathname === tab.href || pathname.startsWith(tab.href + '/')
         return (
           <Link
             key={tab.href}
             href={tab.href}
+            aria-current={active ? 'page' : undefined}
             className={`flex-1 flex flex-col items-center py-2 text-xs gap-0.5 ${
               active ? 'text-blue-500' : 'text-gray-400'
             }`}
           >
-            <span>{tab.icon}</span>
+            <span aria-hidden="true">{tab.icon}</span>
             <span>{tab.label}</span>
           </Link>
         )
