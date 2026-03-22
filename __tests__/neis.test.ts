@@ -69,6 +69,17 @@ describe('parseTimetableRows', () => {
     expect(result[0].entries[0].subject).toBe('국어')
     expect(result[1].entries[0].subject).toBe('영어')
   })
+
+  it('다른 주 데이터는 필터링됨', () => {
+    const rows = [
+      { ALL_TI_YMD: '20260323', PERIO: '1', ITRT_CNTNT: '국어' },  // 해당 주
+      { ALL_TI_YMD: '20260316', PERIO: '1', ITRT_CNTNT: '체육' },  // 이전 주 — 제외되어야 함
+    ]
+    const weekStart = new Date('2026-03-23')
+    const result = parseTimetableRows(rows, weekStart)
+    expect(result[0].entries).toHaveLength(1)  // 국어만
+    expect(result[0].entries[0].subject).toBe('국어')
+  })
 })
 
 describe('parseScheduleRows', () => {

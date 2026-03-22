@@ -74,9 +74,18 @@ export function parseSchoolFromNeis(row: Record<string, any>): School {
 export function parseTimetableRows(rows: Record<string, any>[], weekStart: Date): DayTimetable[] {
   const map: Record<number, TimetableEntry[]> = { 1: [], 2: [], 3: [], 4: [], 5: [] }
 
+  // weekStart(월요일)부터 5일(금요일)까지의 YYYYMMDD 범위 계산
+  const startStr = formatNeisDate(weekStart)
+  const endDate = new Date(weekStart)
+  endDate.setDate(weekStart.getDate() + 4)
+  const endStr = formatNeisDate(endDate)
+
   for (const row of rows) {
     const dateStr = row['ALL_TI_YMD']?.toString() ?? ''
     if (dateStr.length !== 8) continue
+    // 해당 주 범위 외 행 필터링
+    if (dateStr < startStr || dateStr > endStr) continue
+
     const date = new Date(
       Number(dateStr.slice(0, 4)),
       Number(dateStr.slice(4, 6)) - 1,
@@ -103,13 +112,13 @@ export function parseTimetableRows(rows: Record<string, any>[], weekStart: Date)
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseScheduleRows(rows: Record<string, any>[]): CalendarEvent[] {
-  return rows.map((row) => {
+  return rows.map((row, i) => {
     const dateStr = row['AA_YMD']?.toString() ?? ''
     const date = dateStr.length === 8
       ? `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`
       : ''
     return {
-      id: `school_${dateStr}_${row['EVENT_NM']}`,
+      id: `school_${dateStr}_${row['EVENT_NM']}_${i}`,
       title: row['EVENT_NM']?.toString() ?? '',
       startDate: date,
       endDate: date,
