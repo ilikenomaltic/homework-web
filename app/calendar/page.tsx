@@ -51,9 +51,7 @@ export default function CalendarPage() {
         throw new Error(`Failed to fetch events: ${res.status}`)
       }
       const data = await res.json()
-      const monthPrefix = `${y}-${String(m + 1).padStart(2, '0')}`
-      const filtered = (data.events ?? []).filter((e: CalendarEvent) => e.startDate.startsWith(monthPrefix))
-      setEvents(filtered)
+      setEvents(data.events ?? [])
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load events'
       setFetchError(message)
