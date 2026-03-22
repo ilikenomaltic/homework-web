@@ -122,18 +122,19 @@ export function parseTimetableRows(rows: Record<string, any>[], weekStart: Date)
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseScheduleRows(rows: Record<string, any>[]): CalendarEvent[] {
-  return rows.map((row, i) => {
+  return rows.flatMap((row, i) => {
     const dateStr = row['AA_YMD']?.toString() ?? ''
-    const date = dateStr.length === 8
-      ? `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`
-      : ''
+    if (dateStr.length !== 8) return []
+    const date = `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`
     const title = row['EVENT_NM']?.toString() ?? ''
-    return {
+    // 토요일 일정 제외
+    if (new Date(date).getDay() === 6) return []
+    return [{
       id: `school_${dateStr}_${title}_${i}`,
       title,
       startDate: date,
       endDate: date,
       category: getEventCategory(title),
-    }
+    }]
   })
 }
