@@ -220,9 +220,9 @@ export default function CalendarPage() {
 
       {/* 일정 추가 모달 */}
       {addModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
           <div className="absolute inset-0 bg-black/40" onClick={() => setAddModal(false)} />
-          <div className="relative w-full max-w-md bg-white rounded-t-2xl p-5 flex flex-col gap-3">
+          <div className="relative w-full max-w-md bg-white rounded-2xl p-5 flex flex-col gap-3 shadow-xl">
             <h3 className="text-base font-bold text-gray-900">
               {selectedDate.slice(5).replace('-', '월 ')}일 일정 추가
             </h3>

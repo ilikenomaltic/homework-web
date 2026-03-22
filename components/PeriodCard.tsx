@@ -31,13 +31,14 @@ export default function PeriodCard({ period, subject, status, memo, onClick }: P
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-gray-900 truncate">{subject}</p>
-        {memo ? (
-          <p className="text-xs text-gray-500 truncate">{memo}</p>
-        ) : times ? (
+        {times && (
           <p className={`text-xs ${status === 'current' ? 'text-blue-500 font-medium' : 'text-gray-400'}`}>
             {status === 'current' ? '진행 중 · ' : ''}{times.start} – {times.end}
           </p>
-        ) : null}
+        )}
+        {memo && (
+          <p className="text-xs text-gray-500 truncate mt-0.5">{memo}</p>
+        )}
       </div>
       {memo && (
         <div className="w-2 h-2 rounded-full bg-orange-400 shrink-0" />
