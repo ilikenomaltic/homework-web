@@ -1,5 +1,7 @@
 'use client'
 
+import { useMemo } from 'react'
+
 interface Props {
   year: number
   month: number           // 0-indexed
@@ -11,7 +13,7 @@ interface Props {
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
 export default function MonthCalendar({ year, month, eventDates, selectedDate, onSelect }: Props) {
-  const today = new Date()
+  const today = useMemo(() => new Date(), [])
   const firstDay = new Date(year, month, 1).getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
 

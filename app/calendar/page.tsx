@@ -9,14 +9,14 @@ import MonthCalendar from '@/components/MonthCalendar'
 export default function CalendarPage() {
   const router = useRouter()
   const [settings, setSettings] = useState<ReturnType<typeof loadSettings>>(null)
-  const today = new Date()
 
-  const [year, setYear] = useState(today.getFullYear())
-  const [month, setMonth] = useState(today.getMonth())
+  const [year, setYear] = useState(() => new Date().getFullYear())
+  const [month, setMonth] = useState(() => new Date().getMonth())
   const [events, setEvents] = useState<CalendarEvent[]>([])
-  const [selectedDate, setSelectedDate] = useState(
-    `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-  )
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
@@ -61,12 +61,12 @@ export default function CalendarPage() {
   }
 
   function prevMonth() {
-    if (month === 0) { setYear(y => y - 1); setMonth(11) }
-    else setMonth(m => m - 1)
+    if (month === 0) { setYear(year - 1); setMonth(11) }
+    else setMonth(month - 1)
   }
   function nextMonth() {
-    if (month === 11) { setYear(y => y + 1); setMonth(0) }
-    else setMonth(m => m + 1)
+    if (month === 11) { setYear(year + 1); setMonth(0) }
+    else setMonth(month + 1)
   }
 
   const eventDates = events.map((e) => e.startDate)
