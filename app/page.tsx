@@ -22,10 +22,15 @@ export default function OnboardingPage() {
   const search = useCallback(async (q: string) => {
     if (q.length < 2) { setSchools([]); return }
     setLoading(true)
-    const res = await fetch(`/api/neis/school?q=${encodeURIComponent(q)}`)
-    const data = await res.json()
-    setSchools(data.schools ?? [])
-    setLoading(false)
+    try {
+      const res = await fetch(`/api/neis/school?q=${encodeURIComponent(q)}`)
+      const data = await res.json()
+      setSchools(data.schools ?? [])
+    } catch {
+      setSchools([])
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   // 디바운스 300ms
@@ -36,7 +41,10 @@ export default function OnboardingPage() {
 
   function handleStart() {
     if (!selected || !grade || !classNum) return
-    saveSettings({ school: selected, grade: Number(grade), classNum: Number(classNum) })
+    const gradeNum = Number(grade)
+    const classNumN = Number(classNum)
+    if (gradeNum < 1 || gradeNum > 6 || classNumN < 1) return
+    saveSettings({ school: selected, grade: gradeNum, classNum: classNumN })
     router.push('/timetable')
   }
 
@@ -51,7 +59,7 @@ export default function OnboardingPage() {
           className="w-full bg-white rounded-xl px-4 py-3 text-sm shadow-sm outline-none focus:ring-2 ring-blue-400"
           placeholder="학교 이름 검색 (2글자 이상)"
           value={query}
-          onChange={(e) => { setQuery(e.target.value); setSelected(null) }}
+          onChange={(e) => { setQuery(e.target.value); setSelected(null); if (e.target.value.length < 2) setSchools([]) }}
         />
         {loading && <p className="text-xs text-gray-400 mt-1 px-1">검색 중...</p>}
       </div>
