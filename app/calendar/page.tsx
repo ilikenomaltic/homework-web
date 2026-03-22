@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { loadSettings } from '@/lib/storage'
+import { loadSettings, loadPersonalEvents, savePersonalEvents } from '@/lib/storage'
+import type { PersonalEvent } from '@/lib/storage'
 import type { CalendarEvent, EventCategory } from '@/lib/neis'
 import MonthCalendar from '@/components/MonthCalendar'
 
@@ -19,8 +20,13 @@ export default function CalendarPage() {
   })
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
+  const [personalEvents, setPersonalEvents] = useState<PersonalEvent[]>([])
+  const [addModal, setAddModal] = useState(false)
+  const [newTitle, setNewTitle] = useState('')
+  const [newNote, setNewNote] = useState('')
 
   useEffect(() => {
+    setPersonalEvents(loadPersonalEvents())
     const s = loadSettings()
     if (!s) { router.replace('/'); return }
     setSettings(s)
@@ -85,6 +91,28 @@ export default function CalendarPage() {
     event: 'bg-orange-400',
   }
 
+  function handleAddEvent() {
+    if (!newTitle.trim()) return
+    const event: PersonalEvent = {
+      id: `personal_${Date.now()}`,
+      title: newTitle.trim(),
+      date: selectedDate,
+      note: newNote.trim(),
+    }
+    const updated = [...personalEvents, event]
+    setPersonalEvents(updated)
+    savePersonalEvents(updated)
+    setAddModal(false)
+    setNewTitle('')
+    setNewNote('')
+  }
+
+  function handleDeletePersonal(id: string) {
+    const updated = personalEvents.filter((e) => e.id !== id)
+    setPersonalEvents(updated)
+    savePersonalEvents(updated)
+  }
+
   if (!settings) return null
 
   return (
@@ -102,16 +130,31 @@ export default function CalendarPage() {
       <MonthCalendar
         year={year}
         month={month}
-        events={events}
+        events={[
+          ...events,
+          ...personalEvents.map((e) => ({
+            id: e.id,
+            title: e.title,
+            startDate: e.date,
+            endDate: e.date,
+            category: 'event' as const,
+          })),
+        ]}
         selectedDate={selectedDate}
         onSelect={setSelectedDate}
       />
 
       {/* 선택한 날 일정 */}
       <div className="p-3 flex flex-col gap-2">
-        <p className="text-xs text-gray-400 font-medium px-1">
-          {selectedDate.slice(5).replace('-', '월 ')}일 일정
-        </p>
+        <div className="flex items-center justify-between px-1">
+          <p className="text-xs text-gray-400 font-medium">
+            {selectedDate.slice(5).replace('-', '월 ')}일 일정
+          </p>
+          <button
+            onClick={() => { setNewTitle(''); setNewNote(''); setAddModal(true) }}
+            className="w-6 h-6 rounded-full bg-blue-500 text-white text-base leading-none flex items-center justify-center"
+          >+</button>
+        </div>
 
         {fetchError && (
           <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-600">
@@ -119,9 +162,26 @@ export default function CalendarPage() {
           </div>
         )}
 
+        {/* 개인 일정 (선택한 날) */}
+        {personalEvents.filter((e) => e.date === selectedDate).map((e) => (
+          <div key={e.id} className="bg-white rounded-xl px-4 py-3 flex gap-3 items-center">
+            <div className="w-1 h-10 bg-indigo-400 rounded-full shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900">{e.title}</p>
+              {e.note ? (
+                <p className="text-xs text-gray-400 truncate">{e.note}</p>
+              ) : (
+                <p className="text-xs text-gray-400">내 일정</p>
+              )}
+            </div>
+            <button onClick={() => handleDeletePersonal(e.id)} className="text-gray-300 text-lg leading-none px-1">×</button>
+          </div>
+        ))}
+
+        {/* 학사 일정 (선택한 날) */}
         {loading ? (
           <p className="text-xs text-gray-300 px-1">로딩 중...</p>
-        ) : selectedEvents.length === 0 ? (
+        ) : selectedEvents.length === 0 && personalEvents.filter((e) => e.date === selectedDate).length === 0 ? (
           <p className="text-xs text-gray-300 px-1">일정 없음</p>
         ) : (
           selectedEvents.map((e) => (
@@ -157,6 +217,39 @@ export default function CalendarPage() {
           </>
         )}
       </div>
+
+      {/* 일정 추가 모달 */}
+      {addModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setAddModal(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-t-2xl p-5 flex flex-col gap-3">
+            <h3 className="text-base font-bold text-gray-900">
+              {selectedDate.slice(5).replace('-', '월 ')}일 일정 추가
+            </h3>
+            <input
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="제목 (필수)"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              autoFocus
+            />
+            <input
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="메모 (선택)"
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <button onClick={() => setAddModal(false)} className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500">취소</button>
+              <button
+                onClick={handleAddEvent}
+                disabled={!newTitle.trim()}
+                className="flex-1 py-2 rounded-xl bg-blue-500 text-white text-sm font-semibold disabled:opacity-40"
+              >저장</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

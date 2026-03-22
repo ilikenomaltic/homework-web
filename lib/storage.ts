@@ -45,3 +45,45 @@ export function loadSettings(): Settings | null {
 export function clearSettings(): void {
   localStorage.removeItem(KEY)
 }
+
+// ── 과목 메모 ─────────────────────────────────────────────────
+const MEMO_KEY = 'classroom-notifier-memos'
+
+export function loadMemos(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(MEMO_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch { return {} }
+}
+
+export function saveMemo(subject: string, text: string): void {
+  try {
+    const memos = loadMemos()
+    if (text.trim()) memos[subject] = text.trim()
+    else delete memos[subject]
+    localStorage.setItem(MEMO_KEY, JSON.stringify(memos))
+  } catch {}
+}
+
+// ── 개인 일정 ─────────────────────────────────────────────────
+const PERSONAL_KEY = 'classroom-notifier-personal-events'
+
+export interface PersonalEvent {
+  id: string
+  title: string
+  date: string   // YYYY-MM-DD
+  note: string
+}
+
+export function loadPersonalEvents(): PersonalEvent[] {
+  try {
+    const raw = localStorage.getItem(PERSONAL_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch { return [] }
+}
+
+export function savePersonalEvents(events: PersonalEvent[]): void {
+  try {
+    localStorage.setItem(PERSONAL_KEY, JSON.stringify(events))
+  } catch {}
+}

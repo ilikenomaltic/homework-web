@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { loadSettings } from '@/lib/storage'
+import { loadSettings, loadMemos, saveMemo } from '@/lib/storage'
 import { formatNeisDate, PERIOD_TIMES } from '@/lib/neis'
 import type { DayTimetable } from '@/lib/neis'
 import WeekdayTabs from '@/components/WeekdayTabs'
@@ -62,6 +62,11 @@ export default function TimetablePage() {
   const [timetable, setTimetable] = useState<DayTimetable[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(false)
+  const [memos, setMemos] = useState<Record<string, string>>({})
+  const [memoModal, setMemoModal] = useState<string | null>(null) // subject name
+  const [memoText, setMemoText] = useState('')
+
+  useEffect(() => { setMemos(loadMemos()) }, [])
 
   useEffect(() => {
     const s = loadSettings()
@@ -99,6 +104,23 @@ export default function TimetablePage() {
   const pastPeriods = isToday ? getPastPeriods() : []
   const lunchNow = isToday && isLunchTime()
 
+  function openMemo(subject: string) {
+    setMemoText(memos[subject] ?? '')
+    setMemoModal(subject)
+  }
+
+  function handleSaveMemo() {
+    if (!memoModal) return
+    saveMemo(memoModal, memoText)
+    setMemos((prev) => {
+      const next = { ...prev }
+      if (memoText.trim()) next[memoModal] = memoText.trim()
+      else delete next[memoModal]
+      return next
+    })
+    setMemoModal(null)
+  }
+
   if (!settings) return null
 
   return (
@@ -129,6 +151,8 @@ export default function TimetablePage() {
             <PeriodCard
               period={entry.period}
               subject={entry.subject}
+              memo={memos[entry.subject]}
+              onClick={() => openMemo(entry.subject)}
               status={
                 entry.period === currentPeriod
                   ? 'current'
@@ -153,6 +177,27 @@ export default function TimetablePage() {
           </div>
         ))}
       </div>
+
+      {/* 메모 모달 */}
+      {memoModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMemoModal(null)} />
+          <div className="relative w-full max-w-md bg-white rounded-t-2xl p-5 flex flex-col gap-3">
+            <h3 className="text-base font-bold text-gray-900">{memoModal}</h3>
+            <textarea
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 resize-none h-28 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="강의실, 선생님, 준비물 등 메모..."
+              value={memoText}
+              onChange={(e) => setMemoText(e.target.value)}
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button onClick={() => setMemoModal(null)} className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500">취소</button>
+              <button onClick={handleSaveMemo} className="flex-1 py-2 rounded-xl bg-blue-500 text-white text-sm font-semibold">저장</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
