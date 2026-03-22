@@ -48,6 +48,7 @@ export default function TimetablePage() {
   const [selectedDay, setSelectedDay] = useState(todayWeekday)
   const [timetable, setTimetable] = useState<DayTimetable[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(false)
 
   useEffect(() => {
     const s = loadSettings()
@@ -72,10 +73,11 @@ export default function TimetablePage() {
     fetch(`/api/neis/timetable?${params}`)
       .then((r) => r.json())
       .then((data) => { setTimetable(data.timetable ?? []); setLoading(false) })
-      .catch(() => { setLoading(false) })
+      .catch(() => { setFetchError(true); setLoading(false) })
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const dayEntries = timetable.find((d) => d.weekday === selectedDay)?.entries ?? []
+  // getDay() returns 0-6; selectedDay is 1-5 (sat/sun mapped to 5). On weekends getDay() won't match → no period highlighting.
   const currentPeriod = new Date().getDay() === selectedDay ? getCurrentPeriod() : null
   const pastPeriods = new Date().getDay() === selectedDay ? getPastPeriods() : []
 
@@ -95,7 +97,10 @@ export default function TimetablePage() {
       {/* 교시 목록 */}
       <div className="p-3 flex flex-col gap-2">
         {loading && <p className="text-center text-sm text-gray-400 py-10">불러오는 중...</p>}
-        {!loading && dayEntries.length === 0 && (
+        {fetchError && (
+          <p className="text-center text-sm text-red-400 py-10">불러오기 실패. 네트워크를 확인해 주세요</p>
+        )}
+        {!loading && !fetchError && dayEntries.length === 0 && (
           <p className="text-center text-sm text-gray-400 py-10">시간표 정보가 없습니다</p>
         )}
         {dayEntries.map((entry) => (
