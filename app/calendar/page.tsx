@@ -83,12 +83,14 @@ export default function CalendarPage() {
     vacation: '방학/휴업',
     holiday: '공휴일',
     event: '행사',
+    personal: '내 일정',
   }
   const CATEGORY_BAR: Record<EventCategory, string> = {
     exam: 'bg-red-400',
     vacation: 'bg-blue-400',
     holiday: 'bg-purple-400',
     event: 'bg-orange-400',
+    personal: 'bg-indigo-400',
   }
 
   function handleAddEvent() {
@@ -137,7 +139,7 @@ export default function CalendarPage() {
             title: e.title,
             startDate: e.date,
             endDate: e.date,
-            category: 'event' as const,
+            category: 'personal' as const,
           })),
         ]}
         selectedDate={selectedDate}
@@ -199,21 +201,26 @@ export default function CalendarPage() {
         {!loading && (
           <>
             <p className="text-xs text-gray-400 font-medium px-1 mt-2">{month + 1}월 전체 일정</p>
-            {events.length === 0 ? (
-              <p className="text-xs text-gray-300 px-1">이번 달 학사일정이 없습니다</p>
-            ) : (
-              events.map((e) => (
+            {(() => {
+              const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`
+              const monthPersonal = personalEvents.filter((e) => e.date.startsWith(monthPrefix))
+              const allMonth = [
+                ...events.map((e) => ({ id: e.id, title: e.title, date: e.startDate, category: e.category })),
+                ...monthPersonal.map((e) => ({ id: e.id, title: e.title, date: e.date, category: 'personal' as const })),
+              ].sort((a, b) => a.date.localeCompare(b.date))
+              if (allMonth.length === 0) return <p className="text-xs text-gray-300 px-1">이번 달 일정이 없습니다</p>
+              return allMonth.map((e) => (
                 <div key={e.id} className="bg-white rounded-xl px-4 py-3 flex gap-3 items-center">
                   <div className={`w-1 h-10 ${CATEGORY_BAR[e.category]} rounded-full shrink-0`} />
                   <div>
                     <p className="text-sm font-semibold text-gray-900">{e.title}</p>
                     <p className="text-xs text-gray-400">
-                      {e.startDate.slice(5).replace('-', '월 ')}일 · {CATEGORY_LABEL[e.category]}
+                      {e.date.slice(5).replace('-', '월 ')}일 · {CATEGORY_LABEL[e.category]}
                     </p>
                   </div>
                 </div>
               ))
-            )}
+            })()}
           </>
         )}
       </div>
@@ -227,14 +234,14 @@ export default function CalendarPage() {
               {selectedDate.slice(5).replace('-', '월 ')}일 일정 추가
             </h3>
             <input
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-base text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
               placeholder="제목 (필수)"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               autoFocus
             />
             <input
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-base text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
               placeholder="메모 (선택)"
               value={newNote}
               onChange={(e) => setNewNote(e.target.value)}

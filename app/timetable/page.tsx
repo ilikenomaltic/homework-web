@@ -185,7 +185,7 @@ export default function TimetablePage() {
           <div className="relative w-full max-w-md bg-white rounded-2xl p-5 flex flex-col gap-3 shadow-xl">
             <h3 className="text-base font-bold text-gray-900">{memoModal}</h3>
             <textarea
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 resize-none h-28 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-base text-gray-800 resize-none h-28 focus:outline-none focus:ring-2 focus:ring-blue-400"
               placeholder="강의실, 선생님, 준비물 등 메모..."
               value={memoText}
               onChange={(e) => setMemoText(e.target.value)}

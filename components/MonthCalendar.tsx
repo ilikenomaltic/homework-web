@@ -14,10 +14,11 @@ interface Props {
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
 const CATEGORY_COLOR: Record<EventCategory, string> = {
-  exam:    'bg-red-400',
+  exam:     'bg-red-400',
   vacation: 'bg-blue-400',
-  holiday: 'bg-purple-400',
-  event:   'bg-orange-400',
+  holiday:  'bg-purple-400',
+  event:    'bg-orange-400',
+  personal: 'bg-indigo-400',
 }
 
 export default function MonthCalendar({ year, month, events, selectedDate, onSelect }: Props) {

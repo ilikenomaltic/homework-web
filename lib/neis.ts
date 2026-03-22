@@ -18,7 +18,7 @@ export interface DayTimetable {
   entries: TimetableEntry[]
 }
 
-export type EventCategory = 'exam' | 'vacation' | 'holiday' | 'event'
+export type EventCategory = 'exam' | 'vacation' | 'holiday' | 'event' | 'personal'
 
 export interface CalendarEvent {
   id: string
