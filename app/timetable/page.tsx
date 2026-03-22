@@ -8,6 +8,19 @@ import type { DayTimetable } from '@/lib/neis'
 import WeekdayTabs from '@/components/WeekdayTabs'
 import PeriodCard from '@/components/PeriodCard'
 
+function getWeekOfMonth(monday: Date): { month: number; week: number } {
+  return {
+    month: monday.getMonth() + 1,
+    week: Math.ceil(monday.getDate() / 7),
+  }
+}
+
+function isLunchTime(): boolean {
+  const now = new Date()
+  const hm = now.getHours() * 100 + now.getMinutes()
+  return hm >= 1250 && hm < 1350
+}
+
 function getMonday(date: Date): Date {
   const d = new Date(date)
   const day = d.getDay()
@@ -76,10 +89,15 @@ export default function TimetablePage() {
       .catch(() => { setFetchError(true); setLoading(false) })
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
+  const monday = getMonday(new Date())
+  const { month: weekMonth, week: weekNum } = getWeekOfMonth(monday)
+
   const dayEntries = timetable.find((d) => d.weekday === selectedDay)?.entries ?? []
   // getDay() returns 0-6; selectedDay is 1-5 (sat/sun mapped to 5). On weekends getDay() won't match → no period highlighting.
-  const currentPeriod = new Date().getDay() === selectedDay ? getCurrentPeriod() : null
-  const pastPeriods = new Date().getDay() === selectedDay ? getPastPeriods() : []
+  const isToday = new Date().getDay() === selectedDay
+  const currentPeriod = isToday ? getCurrentPeriod() : null
+  const pastPeriods = isToday ? getPastPeriods() : []
+  const lunchNow = isToday && isLunchTime()
 
   if (!settings) return null
 
@@ -87,7 +105,10 @@ export default function TimetablePage() {
     <div className="max-w-md mx-auto">
       {/* 헤더 */}
       <div className="bg-white px-4 py-3 border-b border-gray-100">
-        <p className="text-lg font-bold text-gray-900">{settings.school.name}</p>
+        <div className="flex items-baseline justify-between">
+          <p className="text-lg font-bold text-gray-900">{settings.school.name}</p>
+          <p className="text-xs text-blue-500 font-medium">{weekMonth}월 {weekNum}주차</p>
+        </div>
         <p className="text-xs text-gray-400">{settings.grade}학년 {settings.classNum}반</p>
       </div>
 
@@ -104,18 +125,32 @@ export default function TimetablePage() {
           <p className="text-center text-sm text-gray-400 py-10">시간표 정보가 없습니다</p>
         )}
         {dayEntries.map((entry) => (
-          <PeriodCard
-            key={entry.period}
-            period={entry.period}
-            subject={entry.subject}
-            status={
-              entry.period === currentPeriod
-                ? 'current'
-                : pastPeriods.includes(entry.period)
-                ? 'past'
-                : 'future'
-            }
-          />
+          <div key={entry.period}>
+            <PeriodCard
+              period={entry.period}
+              subject={entry.subject}
+              status={
+                entry.period === currentPeriod
+                  ? 'current'
+                  : pastPeriods.includes(entry.period)
+                  ? 'past'
+                  : 'future'
+              }
+            />
+            {entry.period === 4 && (
+              <div className={`mt-2 bg-white rounded-xl px-4 py-3 flex items-center gap-3 ${lunchNow ? 'ring-2 ring-green-400' : ''}`}>
+                <div className="w-8 h-8 rounded-full bg-green-400 flex items-center justify-center shrink-0">
+                  <span className="text-white text-sm">🍚</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-900">점심시간</p>
+                  <p className={`text-xs ${lunchNow ? 'text-green-500 font-medium' : 'text-gray-400'}`}>
+                    {lunchNow ? '진행 중 · ' : ''}12:50 – 13:50
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         ))}
       </div>
     </div>
