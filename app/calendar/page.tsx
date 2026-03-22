@@ -138,20 +138,24 @@ export default function CalendarPage() {
         )}
 
         {/* 이번 달 전체 일정 */}
-        {!loading && events.length > 0 && (
+        {!loading && (
           <>
             <p className="text-xs text-gray-400 font-medium px-1 mt-2">{month + 1}월 전체 일정</p>
-            {events.map((e) => (
-              <div key={e.id} className="bg-white rounded-xl px-4 py-3 flex gap-3 items-center">
-                <div className={`w-1 h-10 ${CATEGORY_BAR[e.category]} rounded-full shrink-0`} />
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">{e.title}</p>
-                  <p className="text-xs text-gray-400">
-                    {e.startDate.slice(5).replace('-', '월 ')}일 · {CATEGORY_LABEL[e.category]}
-                  </p>
+            {events.length === 0 ? (
+              <p className="text-xs text-gray-300 px-1">이번 달 학사일정이 없습니다</p>
+            ) : (
+              events.map((e) => (
+                <div key={e.id} className="bg-white rounded-xl px-4 py-3 flex gap-3 items-center">
+                  <div className={`w-1 h-10 ${CATEGORY_BAR[e.category]} rounded-full shrink-0`} />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{e.title}</p>
+                    <p className="text-xs text-gray-400">
+                      {e.startDate.slice(5).replace('-', '월 ')}일 · {CATEGORY_LABEL[e.category]}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </>
         )}
       </div>

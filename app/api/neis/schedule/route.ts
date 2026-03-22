@@ -23,11 +23,9 @@ export async function GET(req: NextRequest) {
     KEY: process.env.NEIS_API_KEY ?? '',
     Type: 'json',
     pIndex: '1',
-    pSize: '100',
+    pSize: '200',
     ATPT_OFCDC_SC_CODE: region,
     SD_SCHUL_CODE: code,
-    AA_YMD_FROM: from,
-    AA_YMD_TO: to,
   })
 
   try {
