@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { loadSettings } from '@/lib/storage'
-import type { CalendarEvent } from '@/lib/neis'
+import type { CalendarEvent, EventCategory } from '@/lib/neis'
 import MonthCalendar from '@/components/MonthCalendar'
 
 export default function CalendarPage() {
@@ -34,6 +34,7 @@ export default function CalendarPage() {
   async function fetchEvents(y: number, m: number, s = settings) {
     if (!s) return
     setLoading(true)
+    setEvents([])
     setFetchError(null)
     try {
       const from = `${y}${String(m + 1).padStart(2, '0')}01`
@@ -69,8 +70,20 @@ export default function CalendarPage() {
     else setMonth(month + 1)
   }
 
-  const eventDates = events.map((e) => e.startDate)
   const selectedEvents = events.filter((e) => e.startDate <= selectedDate && e.endDate >= selectedDate)
+
+  const CATEGORY_LABEL: Record<EventCategory, string> = {
+    exam: '시험',
+    vacation: '방학/휴업',
+    holiday: '공휴일',
+    event: '행사',
+  }
+  const CATEGORY_BAR: Record<EventCategory, string> = {
+    exam: 'bg-red-400',
+    vacation: 'bg-blue-400',
+    holiday: 'bg-purple-400',
+    event: 'bg-orange-400',
+  }
 
   if (!settings) return null
 
@@ -89,7 +102,7 @@ export default function CalendarPage() {
       <MonthCalendar
         year={year}
         month={month}
-        eventDates={eventDates}
+        events={events}
         selectedDate={selectedDate}
         onSelect={setSelectedDate}
       />
@@ -113,25 +126,27 @@ export default function CalendarPage() {
         ) : (
           selectedEvents.map((e) => (
             <div key={e.id} className="bg-white rounded-xl px-4 py-3 flex gap-3 items-center">
-              <div className="w-1 h-10 bg-orange-400 rounded-full shrink-0" />
+              <div className={`w-1 h-10 ${CATEGORY_BAR[e.category]} rounded-full shrink-0`} />
               <div>
                 <p className="text-sm font-semibold text-gray-900">{e.title}</p>
-                <p className="text-xs text-gray-400">{e.startDate}</p>
+                <p className="text-xs text-gray-400">{CATEGORY_LABEL[e.category]}</p>
               </div>
             </div>
           ))
         )}
 
         {/* 이번 달 전체 일정 */}
-        {events.length > 0 && (
+        {!loading && events.length > 0 && (
           <>
             <p className="text-xs text-gray-400 font-medium px-1 mt-2">{month + 1}월 전체 일정</p>
             {events.map((e) => (
               <div key={e.id} className="bg-white rounded-xl px-4 py-3 flex gap-3 items-center">
-                <div className="w-1 h-10 bg-blue-400 rounded-full shrink-0" />
+                <div className={`w-1 h-10 ${CATEGORY_BAR[e.category]} rounded-full shrink-0`} />
                 <div>
                   <p className="text-sm font-semibold text-gray-900">{e.title}</p>
-                  <p className="text-xs text-gray-400">{e.startDate}</p>
+                  <p className="text-xs text-gray-400">
+                    {e.startDate.slice(5).replace('-', '월 ')}일 · {CATEGORY_LABEL[e.category]}
+                  </p>
                 </div>
               </div>
             ))}

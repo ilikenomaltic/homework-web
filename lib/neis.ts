@@ -18,11 +18,21 @@ export interface DayTimetable {
   entries: TimetableEntry[]
 }
 
+export type EventCategory = 'exam' | 'vacation' | 'holiday' | 'event'
+
 export interface CalendarEvent {
   id: string
   title: string
   startDate: string  // YYYY-MM-DD
   endDate: string    // YYYY-MM-DD
+  category: EventCategory
+}
+
+export function getEventCategory(title: string): EventCategory {
+  if (/고사|시험|수능/.test(title)) return 'exam'
+  if (/방학|휴업|휴교|재량/.test(title)) return 'vacation'
+  if (/공휴일|현충일|광복|개천|한글날|어린이|설날|추석|성탄|신정/.test(title)) return 'holiday'
+  return 'event'
 }
 
 // ── 교시 시간표 ────────────────────────────────────────────────
@@ -117,11 +127,13 @@ export function parseScheduleRows(rows: Record<string, any>[]): CalendarEvent[] 
     const date = dateStr.length === 8
       ? `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`
       : ''
+    const title = row['EVENT_NM']?.toString() ?? ''
     return {
-      id: `school_${dateStr}_${row['EVENT_NM']}_${i}`,
-      title: row['EVENT_NM']?.toString() ?? '',
+      id: `school_${dateStr}_${title}_${i}`,
+      title,
       startDate: date,
       endDate: date,
+      category: getEventCategory(title),
     }
   })
 }
