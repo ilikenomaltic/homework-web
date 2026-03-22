@@ -24,6 +24,16 @@ describe('saveSettings / loadSettings', () => {
   it('저장값 없으면 null 반환', () => {
     expect(loadSettings()).toBeNull()
   })
+
+  it('손상된 JSON이면 null 반환', () => {
+    localStorage.setItem('classroom-notifier-settings', 'not-json')
+    expect(loadSettings()).toBeNull()
+  })
+
+  it('스키마가 다른 객체면 null 반환', () => {
+    localStorage.setItem('classroom-notifier-settings', JSON.stringify({ invalid: true }))
+    expect(loadSettings()).toBeNull()
+  })
 })
 
 describe('clearSettings', () => {
