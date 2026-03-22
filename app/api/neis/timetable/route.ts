@@ -18,6 +18,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'missing params' }, { status: 400 })
   }
 
+  const VALID_LEVELS = new Set<string>(['elementary', 'middle', 'high'])
+  if (!VALID_LEVELS.has(level)) {
+    return NextResponse.json({ error: 'invalid level' }, { status: 400 })
+  }
+
+  if (!/^\d{8}$/.test(from) || !/^\d{8}$/.test(to)) {
+    return NextResponse.json({ error: 'from/to must be YYYYMMDD' }, { status: 400 })
+  }
+
   const endpoint = getTimetableEndpoint(level)
   const params = new URLSearchParams({
     KEY: process.env.NEIS_API_KEY ?? '',
