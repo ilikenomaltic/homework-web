@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { loadSettings, saveSettings } from '@/lib/storage'
 import type { School } from '@/lib/neis'
-import { validateGrade, validateClassNum } from '@/lib/validation'
+import { validateGrade, validateClassNum, getGradeMax } from '@/lib/validation'
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -78,7 +78,7 @@ export default function OnboardingPage() {
             <button
               key={s.code}
               className="w-full text-left px-4 py-3 text-sm border-b border-gray-100 last:border-0 hover:bg-gray-50"
-              onClick={() => { setSelected(s); setSchools([]); setQuery(s.name) }}
+              onClick={() => { setSelected(s); setSchools([]); setQuery(s.name); setGradeError(grade ? validateGrade(grade, s.level) : null) }}
             >
               <span className="font-medium text-gray-900">{s.name}</span>
               <span className="ml-2 text-xs text-gray-400">
@@ -98,7 +98,7 @@ export default function OnboardingPage() {
               <label className="text-xs text-gray-500 mb-1 block">학년</label>
               <input
                 type="number"
-                min={1} max={6}
+                min={1} max={selected ? getGradeMax(selected.level) : 6}
                 className="w-full bg-gray-50 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-blue-400"
                 placeholder="예: 2"
                 value={grade}
