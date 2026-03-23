@@ -22,6 +22,12 @@ function isLunchTime(): boolean {
   return hm >= 1250 && hm < 1350
 }
 
+function isLunchPast(): boolean {
+  const now = new Date()
+  const hm = now.getHours() * 100 + now.getMinutes()
+  return hm >= 1350
+}
+
 function getMonday(date: Date): Date {
   const d = new Date(date)
   const day = d.getDay()
@@ -115,6 +121,7 @@ export default function TimetablePage() {
   const currentPeriod = isToday ? getCurrentPeriod() : null
   const pastPeriods = isToday ? getPastPeriods() : []
   const lunchNow = isToday && isLunchTime()
+  const lunchPast = isToday && isLunchPast()
 
   function openInfo(period: number, subject: string) {
     const key = `${selectedDay}-${period}`
@@ -237,7 +244,7 @@ export default function TimetablePage() {
                     }
                   />
                   {entry.period === 4 && (
-                    <div className={`mt-2 bg-white rounded-xl px-4 py-3 flex items-center gap-3 ${lunchNow ? 'ring-2 ring-green-400' : ''}`}>
+                    <div className={`mt-2 bg-white rounded-xl px-4 py-3 flex items-center gap-3 transition-opacity ${lunchNow ? 'ring-2 ring-green-400' : ''} ${lunchPast ? 'opacity-40' : ''}`}>
                       <div className="w-8 h-8 rounded-full bg-green-400 flex items-center justify-center shrink-0">
                         <span className="text-white text-sm">🍚</span>
                       </div>
