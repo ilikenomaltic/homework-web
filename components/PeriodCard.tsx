@@ -7,6 +7,8 @@ interface Props {
   subject: string
   status: Status
   memo?: string
+  teacher?: string
+  classroom?: string
   onClick?: () => void
 }
 
@@ -15,7 +17,7 @@ const PERIOD_COLORS = [
   'bg-pink-500', 'bg-teal-500', 'bg-red-500', 'bg-yellow-500',
 ]
 
-export default function PeriodCard({ period, subject, status, memo, onClick }: Props) {
+export default function PeriodCard({ period, subject, status, memo, teacher, classroom, onClick }: Props) {
   const times = PERIOD_TIMES[period]
   const color = PERIOD_COLORS[(period - 1) % PERIOD_COLORS.length]
 
@@ -36,12 +38,24 @@ export default function PeriodCard({ period, subject, status, memo, onClick }: P
             {status === 'current' ? '진행 중 · ' : ''}{times.start} – {times.end}
           </p>
         )}
+        {(classroom || teacher) && (
+          <p className="text-xs text-gray-400 truncate mt-0.5">
+            {[classroom, teacher].filter(Boolean).join(' · ')}
+          </p>
+        )}
         {memo && (
           <p className="text-xs text-gray-500 truncate mt-0.5">{memo}</p>
         )}
       </div>
-      {memo && (
-        <div className="w-2 h-2 rounded-full bg-orange-400 shrink-0" />
+      {/* 오른쪽 아이콘 */}
+      {(memo || teacher || classroom) ? (
+        <svg className="w-4 h-4 text-orange-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 3.487a2.25 2.25 0 113.182 3.182L7.5 19.213l-4.5 1.125 1.125-4.5L16.862 3.487z" />
+        </svg>
+      ) : (
+        <svg className="w-4 h-4 text-gray-200 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
       )}
     </button>
   )
