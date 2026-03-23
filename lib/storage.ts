@@ -87,3 +87,46 @@ export function savePersonalEvents(events: PersonalEvent[]): void {
     localStorage.setItem(PERSONAL_KEY, JSON.stringify(events))
   } catch {}
 }
+
+// ── 교시별 상세 정보 ──────────────────────────────────────────
+const PERIOD_INFO_KEY = 'classroom-notifier-period-info'
+
+export interface PeriodInfo {
+  teacher?: string
+  classroom?: string
+  memo?: string
+  timestamp?: number
+}
+
+function getPeriodKey(weekday: number, period: number): string {
+  return `${weekday}-${period}`
+}
+
+export function loadPeriodInfos(): Record<string, PeriodInfo> {
+  try {
+    const raw = localStorage.getItem(PERIOD_INFO_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch { return {} }
+}
+
+export function savePeriodInfo(weekday: number, period: number, info: PeriodInfo): void {
+  try {
+    const all = loadPeriodInfos()
+    const key = getPeriodKey(weekday, period)
+    const isEmpty = !info.teacher?.trim() && !info.classroom?.trim() && !info.memo?.trim()
+    if (isEmpty) {
+      delete all[key]
+    } else {
+      all[key] = { ...info, timestamp: Date.now() }
+    }
+    localStorage.setItem(PERIOD_INFO_KEY, JSON.stringify(all))
+  } catch {}
+}
+
+export function deletePeriodInfo(weekday: number, period: number): void {
+  try {
+    const all = loadPeriodInfos()
+    delete all[getPeriodKey(weekday, period)]
+    localStorage.setItem(PERIOD_INFO_KEY, JSON.stringify(all))
+  } catch {}
+}

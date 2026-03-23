@@ -1,4 +1,7 @@
-import { saveSettings, loadSettings, clearSettings } from '@/lib/storage'
+import {
+  saveSettings, loadSettings, clearSettings,
+  savePeriodInfo, loadPeriodInfos, deletePeriodInfo,
+} from '@/lib/storage'
 import type { School } from '@/lib/neis'
 
 const mockSchool: School = {
@@ -41,5 +44,35 @@ describe('clearSettings', () => {
     saveSettings({ school: mockSchool, grade: 1, classNum: 1 })
     clearSettings()
     expect(loadSettings()).toBeNull()
+  })
+})
+
+describe('PeriodInfo CRUD', () => {
+  beforeEach(() => { localStorage.clear() })
+
+  it('교시 정보 저장 후 불러오기', () => {
+    savePeriodInfo(1, 3, { teacher: '김선생님', classroom: '203호', memo: '교과서 챙기기' })
+    const infos = loadPeriodInfos()
+    expect(infos['1-3']?.teacher).toBe('김선생님')
+    expect(infos['1-3']?.classroom).toBe('203호')
+    expect(infos['1-3']?.memo).toBe('교과서 챙기기')
+    expect(typeof infos['1-3']?.timestamp).toBe('number')
+  })
+
+  it('모든 필드가 비면 해당 키 삭제', () => {
+    savePeriodInfo(1, 3, { teacher: '김선생님' })
+    savePeriodInfo(1, 3, { teacher: '', classroom: '', memo: '' })
+    const infos = loadPeriodInfos()
+    expect(infos['1-3']).toBeUndefined()
+  })
+
+  it('deletePeriodInfo로 키 삭제', () => {
+    savePeriodInfo(2, 5, { classroom: '101호' })
+    deletePeriodInfo(2, 5)
+    expect(loadPeriodInfos()['2-5']).toBeUndefined()
+  })
+
+  it('저장 없으면 빈 객체 반환', () => {
+    expect(loadPeriodInfos()).toEqual({})
   })
 })
