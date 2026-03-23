@@ -1,6 +1,7 @@
 import {
   saveSettings, loadSettings, clearSettings,
   savePeriodInfo, loadPeriodInfos, deletePeriodInfo,
+  saveCustomClass, loadCustomClasses, deleteCustomClass,
 } from '@/lib/storage'
 import type { School } from '@/lib/neis'
 
@@ -74,5 +75,28 @@ describe('PeriodInfo CRUD', () => {
 
   it('저장 없으면 빈 객체 반환', () => {
     expect(loadPeriodInfos()).toEqual({})
+  })
+})
+
+describe('CustomClass CRUD', () => {
+  beforeEach(() => { localStorage.clear() })
+
+  it('커스텀 수업 저장 후 불러오기', () => {
+    saveCustomClass(1, 7, { subject: '자율학습', teacher: '담임', classroom: '본교실' })
+    const classes = loadCustomClasses()
+    expect(classes['1-7']?.subject).toBe('자율학습')
+    expect(classes['1-7']?.teacher).toBe('담임')
+  })
+
+  it('deleteCustomClass는 CustomClass와 PeriodInfo 함께 삭제', () => {
+    saveCustomClass(3, 6, { subject: '동아리' })
+    savePeriodInfo(3, 6, { memo: '준비물 있음' })
+    deleteCustomClass(3, 6)
+    expect(loadCustomClasses()['3-6']).toBeUndefined()
+    expect(loadPeriodInfos()['3-6']).toBeUndefined()
+  })
+
+  it('저장 없으면 빈 객체 반환', () => {
+    expect(loadCustomClasses()).toEqual({})
   })
 })

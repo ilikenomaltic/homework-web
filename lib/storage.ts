@@ -139,3 +139,36 @@ export function deletePeriodInfo(weekday: number, period: number): void {
     localStorage.setItem(PERIOD_INFO_KEY, JSON.stringify(all))
   } catch {}
 }
+
+// ── 직접 추가 수업 ─────────────────────────────────────────────
+const CUSTOM_CLASS_KEY = 'classroom-notifier-custom-classes'
+
+export interface CustomClass {
+  subject: string
+  teacher?: string
+  classroom?: string
+}
+
+export function loadCustomClasses(): Record<string, CustomClass> {
+  try {
+    const raw = localStorage.getItem(CUSTOM_CLASS_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch { return {} }
+}
+
+export function saveCustomClass(weekday: number, period: number, cls: CustomClass): void {
+  try {
+    const all = loadCustomClasses()
+    all[`${weekday}-${period}`] = cls
+    localStorage.setItem(CUSTOM_CLASS_KEY, JSON.stringify(all))
+  } catch {}
+}
+
+export function deleteCustomClass(weekday: number, period: number): void {
+  try {
+    const all = loadCustomClasses()
+    delete all[`${weekday}-${period}`]
+    localStorage.setItem(CUSTOM_CLASS_KEY, JSON.stringify(all))
+    deletePeriodInfo(weekday, period)
+  } catch {}
+}
