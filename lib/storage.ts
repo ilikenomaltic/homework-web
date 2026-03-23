@@ -95,17 +95,26 @@ export interface PeriodInfo {
   teacher?: string
   classroom?: string
   memo?: string
-  timestamp?: number
+}
+
+interface StoredPeriodInfo extends PeriodInfo {
+  timestamp: number
 }
 
 function getPeriodKey(weekday: number, period: number): string {
   return `${weekday}-${period}`
 }
 
-export function loadPeriodInfos(): Record<string, PeriodInfo> {
+function isValidPeriodInfoRecord(obj: unknown): obj is Record<string, StoredPeriodInfo> {
+  return !!obj && typeof obj === 'object' && !Array.isArray(obj)
+}
+
+export function loadPeriodInfos(): Record<string, StoredPeriodInfo> {
   try {
     const raw = localStorage.getItem(PERIOD_INFO_KEY)
-    return raw ? JSON.parse(raw) : {}
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    return isValidPeriodInfoRecord(parsed) ? parsed : {}
   } catch { return {} }
 }
 
