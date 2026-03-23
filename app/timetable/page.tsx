@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { loadSettings, loadPeriodInfos, savePeriodInfo, loadCustomClasses } from '@/lib/storage'
+import { loadSettings, loadPeriodInfos, savePeriodInfo, loadCustomClasses, saveCustomClass } from '@/lib/storage'
 import type { PeriodInfo, CustomClass } from '@/lib/storage'
 import { formatNeisDate, PERIOD_TIMES } from '@/lib/neis'
 import type { DayTimetable } from '@/lib/neis'
@@ -69,6 +69,11 @@ export default function TimetablePage() {
   const [infoTeacher, setInfoTeacher] = useState('')
   const [infoClassroom, setInfoClassroom] = useState('')
   const [infoMemo, setInfoMemo] = useState('')
+  const [addClassModal, setAddClassModal] = useState(false)
+  const [addPeriod, setAddPeriod] = useState<number | ''>('')
+  const [addSubject, setAddSubject] = useState('')
+  const [addTeacher, setAddTeacher] = useState('')
+  const [addClassroom, setAddClassroom] = useState('')
 
   useEffect(() => {
     setPeriodInfos(loadPeriodInfos())
@@ -149,6 +154,31 @@ export default function TimetablePage() {
     setInfoModal(null)
   }
 
+  function getEmptyPeriods(): number[] {
+    const usedPeriods = new Set([
+      ...dayEntries.map(e => e.period),
+      ...Object.entries(customClasses)
+        .filter(([k]) => k.startsWith(`${selectedDay}-`))
+        .map(([k]) => Number(k.split('-')[1])),
+    ])
+    return Object.keys(PERIOD_TIMES).map(Number).filter(p => !usedPeriods.has(p))
+  }
+
+  function handleAddClass() {
+    if (!addSubject.trim() || addPeriod === '') return
+    saveCustomClass(selectedDay, Number(addPeriod), {
+      subject: addSubject.trim(),
+      teacher: addTeacher.trim() || undefined,
+      classroom: addClassroom.trim() || undefined,
+    })
+    setCustomClasses(loadCustomClasses())
+    setAddClassModal(false)
+    setAddPeriod('')
+    setAddSubject('')
+    setAddTeacher('')
+    setAddClassroom('')
+  }
+
   if (!settings) return null
 
   return (
@@ -171,42 +201,122 @@ export default function TimetablePage() {
         {fetchError && (
           <p className="text-center text-sm text-red-400 py-10">불러오기 실패. 네트워크를 확인해 주세요</p>
         )}
-        {!loading && !fetchError && dayEntries.length === 0 && (
-          <p className="text-center text-sm text-gray-400 py-10">시간표 정보가 없습니다</p>
-        )}
-        {dayEntries.map((entry) => (
-          <div key={entry.period}>
-            <PeriodCard
-              period={entry.period}
-              subject={entry.subject}
-              memo={periodInfos[`${selectedDay}-${entry.period}`]?.memo}
-              teacher={periodInfos[`${selectedDay}-${entry.period}`]?.teacher}
-              classroom={periodInfos[`${selectedDay}-${entry.period}`]?.classroom}
-              onClick={() => openInfo(entry.period, entry.subject)}
-              status={
-                entry.period === currentPeriod
-                  ? 'current'
-                  : pastPeriods.includes(entry.period)
-                  ? 'past'
-                  : 'future'
-              }
-            />
-            {entry.period === 4 && (
-              <div className={`mt-2 bg-white rounded-xl px-4 py-3 flex items-center gap-3 ${lunchNow ? 'ring-2 ring-green-400' : ''}`}>
-                <div className="w-8 h-8 rounded-full bg-green-400 flex items-center justify-center shrink-0">
-                  <span className="text-white text-sm">🍚</span>
+        {!loading && !fetchError && (() => {
+          const neisKeys = new Set(dayEntries.map(e => e.period))
+          const customEntries = Object.entries(customClasses)
+            .filter(([k]) => k.startsWith(`${selectedDay}-`) && !neisKeys.has(Number(k.split('-')[1])))
+            .map(([k, v]) => ({ period: Number(k.split('-')[1]), subject: v.subject, isCustom: true as const }))
+
+          const allEntries = [
+            ...dayEntries.map(e => ({ ...e, isCustom: false as const })),
+            ...customEntries,
+          ].sort((a, b) => a.period - b.period)
+
+          const emptyPeriods = getEmptyPeriods()
+
+          return (
+            <>
+              {allEntries.length === 0 && emptyPeriods.length === 0 && (
+                <p className="text-center text-sm text-gray-400 py-10">시간표 정보가 없습니다</p>
+              )}
+              {allEntries.map((entry) => (
+                <div key={entry.period}>
+                  <PeriodCard
+                    period={entry.period}
+                    subject={entry.subject}
+                    memo={periodInfos[`${selectedDay}-${entry.period}`]?.memo}
+                    teacher={periodInfos[`${selectedDay}-${entry.period}`]?.teacher ?? (entry.isCustom ? customClasses[`${selectedDay}-${entry.period}`]?.teacher : undefined)}
+                    classroom={periodInfos[`${selectedDay}-${entry.period}`]?.classroom ?? (entry.isCustom ? customClasses[`${selectedDay}-${entry.period}`]?.classroom : undefined)}
+                    onClick={() => openInfo(entry.period, entry.subject)}
+                    status={
+                      entry.period === currentPeriod
+                        ? 'current'
+                        : pastPeriods.includes(entry.period)
+                        ? 'past'
+                        : 'future'
+                    }
+                  />
+                  {entry.period === 4 && (
+                    <div className={`mt-2 bg-white rounded-xl px-4 py-3 flex items-center gap-3 ${lunchNow ? 'ring-2 ring-green-400' : ''}`}>
+                      <div className="w-8 h-8 rounded-full bg-green-400 flex items-center justify-center shrink-0">
+                        <span className="text-white text-sm">🍚</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-gray-900">점심시간</p>
+                        <p className={`text-xs ${lunchNow ? 'text-green-500 font-medium' : 'text-gray-400'}`}>
+                          {lunchNow ? '진행 중 · ' : ''}12:50 – 13:50
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-900">점심시간</p>
-                  <p className={`text-xs ${lunchNow ? 'text-green-500 font-medium' : 'text-gray-400'}`}>
-                    {lunchNow ? '진행 중 · ' : ''}12:50 – 13:50
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
+              ))}
+              {emptyPeriods.length > 0 && (
+                <button
+                  onClick={() => { setAddPeriod(emptyPeriods[0]); setAddClassModal(true) }}
+                  className="w-full bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl py-3 text-sm text-gray-400 font-medium"
+                >
+                  + 수업 추가
+                </button>
+              )}
+            </>
+          )
+        })()}
       </div>
+
+      {/* 정보 모달 */}
+      {/* 수업 추가 모달 */}
+      {addClassModal && (() => {
+        const emptyPeriods = getEmptyPeriods()
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setAddClassModal(false)} />
+            <div className="relative w-full max-w-md bg-white rounded-2xl p-5 flex flex-col gap-3 shadow-xl">
+              <h3 className="text-base font-bold text-gray-900">수업 추가</h3>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">교시</label>
+                <select
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-base text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  value={addPeriod}
+                  onChange={(e) => setAddPeriod(e.target.value === '' ? '' : Number(e.target.value))}
+                >
+                  <option value="">교시 선택</option>
+                  {emptyPeriods.map(p => (
+                    <option key={p} value={p}>{p}교시</option>
+                  ))}
+                </select>
+              </div>
+              <input
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-base text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="과목명 (필수)"
+                value={addSubject}
+                onChange={(e) => setAddSubject(e.target.value)}
+                autoFocus
+              />
+              <input
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-base text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="선생님 (선택)"
+                value={addTeacher}
+                onChange={(e) => setAddTeacher(e.target.value)}
+              />
+              <input
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-base text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="강의실 (선택)"
+                value={addClassroom}
+                onChange={(e) => setAddClassroom(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <button onClick={() => setAddClassModal(false)} className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500">취소</button>
+                <button
+                  onClick={handleAddClass}
+                  disabled={!addSubject.trim() || addPeriod === ''}
+                  className="flex-1 py-2 rounded-xl bg-blue-500 text-white text-sm font-semibold disabled:opacity-40"
+                >추가</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* 정보 모달 */}
       {infoModal && (() => {
