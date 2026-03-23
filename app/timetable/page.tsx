@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { loadSettings, loadMemos, saveMemo } from '@/lib/storage'
+import { loadSettings, loadPeriodInfos, savePeriodInfo, loadCustomClasses } from '@/lib/storage'
+import type { PeriodInfo, CustomClass } from '@/lib/storage'
 import { formatNeisDate, PERIOD_TIMES } from '@/lib/neis'
 import type { DayTimetable } from '@/lib/neis'
 import WeekdayTabs from '@/components/WeekdayTabs'
@@ -62,11 +63,17 @@ export default function TimetablePage() {
   const [timetable, setTimetable] = useState<DayTimetable[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(false)
-  const [memos, setMemos] = useState<Record<string, string>>({})
-  const [memoModal, setMemoModal] = useState<string | null>(null) // subject name
-  const [memoText, setMemoText] = useState('')
+  const [periodInfos, setPeriodInfos] = useState<Record<string, PeriodInfo>>({})
+  const [customClasses, setCustomClasses] = useState<Record<string, CustomClass>>({})
+  const [infoModal, setInfoModal] = useState<{ period: number; subject: string } | null>(null)
+  const [infoTeacher, setInfoTeacher] = useState('')
+  const [infoClassroom, setInfoClassroom] = useState('')
+  const [infoMemo, setInfoMemo] = useState('')
 
-  useEffect(() => { setMemos(loadMemos()) }, [])
+  useEffect(() => {
+    setPeriodInfos(loadPeriodInfos())
+    setCustomClasses(loadCustomClasses())
+  }, [])
 
   useEffect(() => {
     const s = loadSettings()
@@ -104,21 +111,42 @@ export default function TimetablePage() {
   const pastPeriods = isToday ? getPastPeriods() : []
   const lunchNow = isToday && isLunchTime()
 
-  function openMemo(subject: string) {
-    setMemoText(memos[subject] ?? '')
-    setMemoModal(subject)
+  function openInfo(period: number, subject: string) {
+    const key = `${selectedDay}-${period}`
+    const existing = periodInfos[key]
+    setInfoTeacher(existing?.teacher ?? '')
+    setInfoClassroom(existing?.classroom ?? '')
+    setInfoMemo(existing?.memo ?? '')
+    setInfoModal({ period, subject })
   }
 
-  function handleSaveMemo() {
-    if (!memoModal) return
-    saveMemo(memoModal, memoText)
-    setMemos((prev) => {
-      const next = { ...prev }
-      if (memoText.trim()) next[memoModal] = memoText.trim()
-      else delete next[memoModal]
-      return next
+  function getLastSavedInfoForSubject(subject: string): PeriodInfo | null {
+    if (!infoModal) return null
+    const currentKey = `${selectedDay}-${infoModal.period}`
+    const allEntries = [
+      ...timetable.flatMap(d => d.entries.map(e => ({ weekday: d.weekday, period: e.period, subject: e.subject }))),
+      ...Object.entries(customClasses).map(([k, v]) => {
+        const [wd, p] = k.split('-').map(Number)
+        return { weekday: wd, period: p, subject: v.subject }
+      })
+    ]
+    const candidates = allEntries
+      .filter(e => e.subject === subject && `${e.weekday}-${e.period}` !== currentKey)
+      .map(e => ({ key: `${e.weekday}-${e.period}`, info: periodInfos[`${e.weekday}-${e.period}`] }))
+      .filter(({ info }) => info?.teacher || info?.classroom)
+      .sort((a, b) => ((b.info as { timestamp?: number })?.timestamp ?? 0) - ((a.info as { timestamp?: number })?.timestamp ?? 0))
+    return candidates[0]?.info ?? null
+  }
+
+  function handleSaveInfo() {
+    if (!infoModal) return
+    savePeriodInfo(selectedDay, infoModal.period, {
+      teacher: infoTeacher,
+      classroom: infoClassroom,
+      memo: infoMemo,
     })
-    setMemoModal(null)
+    setPeriodInfos(loadPeriodInfos())
+    setInfoModal(null)
   }
 
   if (!settings) return null
@@ -151,8 +179,10 @@ export default function TimetablePage() {
             <PeriodCard
               period={entry.period}
               subject={entry.subject}
-              memo={memos[entry.subject]}
-              onClick={() => openMemo(entry.subject)}
+              memo={periodInfos[`${selectedDay}-${entry.period}`]?.memo}
+              teacher={periodInfos[`${selectedDay}-${entry.period}`]?.teacher}
+              classroom={periodInfos[`${selectedDay}-${entry.period}`]?.classroom}
+              onClick={() => openInfo(entry.period, entry.subject)}
               status={
                 entry.period === currentPeriod
                   ? 'current'
@@ -178,26 +208,52 @@ export default function TimetablePage() {
         ))}
       </div>
 
-      {/* 메모 모달 */}
-      {memoModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMemoModal(null)} />
-          <div className="relative w-full max-w-md bg-white rounded-2xl p-5 flex flex-col gap-3 shadow-xl">
-            <h3 className="text-base font-bold text-gray-900">{memoModal}</h3>
-            <textarea
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-base text-gray-800 resize-none h-28 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="강의실, 선생님, 준비물 등 메모..."
-              value={memoText}
-              onChange={(e) => setMemoText(e.target.value)}
-              autoFocus
-            />
-            <div className="flex gap-2">
-              <button onClick={() => setMemoModal(null)} className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500">취소</button>
-              <button onClick={handleSaveMemo} className="flex-1 py-2 rounded-xl bg-blue-500 text-white text-sm font-semibold">저장</button>
+      {/* 정보 모달 */}
+      {infoModal && (() => {
+        const suggestion = getLastSavedInfoForSubject(infoModal.subject)
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setInfoModal(null)} />
+            <div className="relative w-full max-w-md bg-white rounded-2xl p-5 flex flex-col gap-3 shadow-xl">
+              <h3 className="text-base font-bold text-gray-900">{infoModal.period}교시 {infoModal.subject}</h3>
+              {suggestion && (
+                <button
+                  onClick={() => {
+                    setInfoTeacher(suggestion.teacher ?? '')
+                    setInfoClassroom(suggestion.classroom ?? '')
+                  }}
+                  className="text-xs text-blue-500 text-left px-3 py-2 bg-blue-50 rounded-xl"
+                >
+                  이전 {infoModal.subject} 불러오기 ({[suggestion.teacher, suggestion.classroom].filter(Boolean).join(' · ')})
+                </button>
+              )}
+              <input
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-base text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="강의실 (예: 203호)"
+                value={infoClassroom}
+                onChange={(e) => setInfoClassroom(e.target.value)}
+                autoFocus
+              />
+              <input
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-base text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="선생님 (예: 김철수 선생님)"
+                value={infoTeacher}
+                onChange={(e) => setInfoTeacher(e.target.value)}
+              />
+              <textarea
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-base text-gray-800 resize-none h-24 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="메모 (준비물, 공지 등)"
+                value={infoMemo}
+                onChange={(e) => setInfoMemo(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <button onClick={() => setInfoModal(null)} className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500">취소</button>
+                <button onClick={handleSaveInfo} className="flex-1 py-2 rounded-xl bg-blue-500 text-white text-sm font-semibold">저장</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }
