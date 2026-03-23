@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { loadSettings, saveSettings } from '@/lib/storage'
 import type { School } from '@/lib/neis'
+import { validateGrade, validateClassNum } from '@/lib/validation'
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -12,6 +13,8 @@ export default function OnboardingPage() {
   const [selected, setSelected] = useState<School | null>(null)
   const [grade, setGrade] = useState('')
   const [classNum, setClassNum] = useState('')
+  const [gradeError, setGradeError] = useState<string | null>(null)
+  const [classNumError, setClassNumError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   // 이미 설정된 경우 바로 시간표로
@@ -41,10 +44,14 @@ export default function OnboardingPage() {
 
   function handleStart() {
     if (!selected || !grade || !classNum) return
-    const gradeNum = Number(grade)
-    const classNumN = Number(classNum)
-    if (gradeNum < 1 || gradeNum > 6 || classNumN < 1) return
-    saveSettings({ school: selected, grade: gradeNum, classNum: classNumN })
+    const gErr = validateGrade(grade, selected.level)
+    const cErr = validateClassNum(classNum)
+    if (gErr || cErr) {
+      setGradeError(gErr)
+      setClassNumError(cErr)
+      return
+    }
+    saveSettings({ school: selected, grade: Number(grade), classNum: Number(classNum) })
     router.push('/timetable')
   }
 
@@ -95,8 +102,12 @@ export default function OnboardingPage() {
                 className="w-full bg-gray-50 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-blue-400"
                 placeholder="예: 2"
                 value={grade}
-                onChange={(e) => setGrade(e.target.value)}
+                onChange={(e) => {
+                  setGrade(e.target.value)
+                  setGradeError(selected ? validateGrade(e.target.value, selected.level) : null)
+                }}
               />
+              {gradeError && <p className="text-xs text-red-400 mt-1">{gradeError}</p>}
             </div>
             <div className="flex-1">
               <label className="text-xs text-gray-500 mb-1 block">반</label>
@@ -106,8 +117,12 @@ export default function OnboardingPage() {
                 className="w-full bg-gray-50 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-blue-400"
                 placeholder="예: 2"
                 value={classNum}
-                onChange={(e) => setClassNum(e.target.value)}
+                onChange={(e) => {
+                  setClassNum(e.target.value)
+                  setClassNumError(validateClassNum(e.target.value))
+                }}
               />
+              {classNumError && <p className="text-xs text-red-400 mt-1">{classNumError}</p>}
             </div>
           </div>
         </div>
@@ -115,7 +130,7 @@ export default function OnboardingPage() {
 
       {/* 시작 버튼 */}
       <button
-        disabled={!selected || !grade || !classNum}
+        disabled={!selected || !grade || !classNum || !!gradeError || !!classNumError}
         onClick={handleStart}
         className="w-full bg-blue-500 disabled:bg-gray-200 text-white disabled:text-gray-400 rounded-xl py-3 text-sm font-semibold"
       >
