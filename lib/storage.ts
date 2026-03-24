@@ -188,5 +188,7 @@ export function loadAllergies(): number[] {
 }
 
 export function saveAllergies(codes: number[]): void {
-  localStorage.setItem('allergies', JSON.stringify(codes))
+  try {
+    localStorage.setItem('allergies', JSON.stringify(codes))
+  } catch {}
 }
