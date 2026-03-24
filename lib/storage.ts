@@ -172,3 +172,21 @@ export function deleteCustomClass(weekday: number, period: number): void {
     deletePeriodInfo(weekday, period)
   } catch {}
 }
+
+// ── 알레르기 설정 ──────────────────────────────────────────────
+function isValidAllergyArray(obj: unknown): obj is number[] {
+  return Array.isArray(obj) && obj.every(n => typeof n === 'number' && n >= 1 && n <= 18)
+}
+
+export function loadAllergies(): number[] {
+  try {
+    const raw = localStorage.getItem('allergies')
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return isValidAllergyArray(parsed) ? parsed : []
+  } catch { return [] }
+}
+
+export function saveAllergies(codes: number[]): void {
+  localStorage.setItem('allergies', JSON.stringify(codes))
+}

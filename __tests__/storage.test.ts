@@ -2,6 +2,7 @@ import {
   saveSettings, loadSettings, clearSettings,
   savePeriodInfo, loadPeriodInfos, deletePeriodInfo,
   saveCustomClass, loadCustomClasses, deleteCustomClass,
+  loadAllergies, saveAllergies,
 } from '@/lib/storage'
 import type { School } from '@/lib/neis'
 
@@ -98,5 +99,33 @@ describe('CustomClass CRUD', () => {
 
   it('저장 없으면 빈 객체 반환', () => {
     expect(loadCustomClasses()).toEqual({})
+  })
+})
+
+describe('loadAllergies / saveAllergies', () => {
+  beforeEach(() => { localStorage.clear() })
+
+  it('키 없으면 빈 배열 반환', () => {
+    expect(loadAllergies()).toEqual([])
+  })
+
+  it('저장된 배열 올바르게 반환', () => {
+    saveAllergies([1, 5, 13])
+    expect(loadAllergies()).toEqual([1, 5, 13])
+  })
+
+  it('문자열 배열이면 빈 배열 반환', () => {
+    localStorage.setItem('allergies', JSON.stringify(['not-a-number']))
+    expect(loadAllergies()).toEqual([])
+  })
+
+  it('범위 벗어난 숫자(0, 19)면 빈 배열 반환', () => {
+    localStorage.setItem('allergies', JSON.stringify([0, 19]))
+    expect(loadAllergies()).toEqual([])
+  })
+
+  it('saveAllergies 후 loadAllergies로 읽을 수 있음', () => {
+    saveAllergies([2, 7, 18])
+    expect(loadAllergies()).toEqual([2, 7, 18])
   })
 })
