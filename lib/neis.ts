@@ -137,7 +137,7 @@ export const ALLERGY_LABELS: Record<number, { name: string; emoji: string }> = {
   2:  { name: '우유',     emoji: '🥛' },
   3:  { name: '메밀',     emoji: '🌿' },
   4:  { name: '땅콩',     emoji: '🥜' },
-  5:  { name: '대두',     emoji: '🫘' },
+  5:  { name: '대두(콩)', emoji: '🫘' },
   6:  { name: '밀',       emoji: '🌾' },
   7:  { name: '고등어',   emoji: '🐟' },
   8:  { name: '게',       emoji: '🦀' },

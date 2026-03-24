@@ -138,4 +138,9 @@ describe('parseMealRows', () => {
     ]
     expect(parseMealRows(rows)[0].items[0].allergens).toEqual([])
   })
+
+  it('DDISH_NM 없는 row → 빈 items', () => {
+    const rows = [{ MLSV_YMD: '20260324', CAL_INFO: '' }]
+    expect(parseMealRows(rows)[0].items).toHaveLength(0)
+  })
 })
