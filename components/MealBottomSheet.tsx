@@ -13,7 +13,7 @@ export default function MealBottomSheet({ meal, allergies, date, onClose }: Prop
       <div className="absolute inset-0 bg-black/40" />
       <div
         data-testid="meal-sheet"
-        className="absolute bottom-0 w-full rounded-t-2xl bg-white dark:bg-gray-900 px-4 pb-6"
+        className="absolute bottom-0 w-full rounded-t-2xl bg-white px-4 pb-6"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Handle bar */}
@@ -38,7 +38,7 @@ export default function MealBottomSheet({ meal, allergies, date, onClose }: Prop
               <div
                 key={idx}
                 className={`flex items-center gap-3 py-3 border-b border-gray-100 last:border-0 ${
-                  hasAllergy ? 'bg-red-50/50 dark:bg-red-950/20 -mx-4 px-4 rounded' : ''
+                  hasAllergy ? 'bg-red-50/50 -mx-4 px-4 rounded' : ''
                 }`}
               >
                 {/* Dot */}
