@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { loadSettings, loadPeriodInfos, savePeriodInfo, loadCustomClasses, saveCustomClass } from '@/lib/storage'
+import { loadSettings, loadPeriodInfos, savePeriodInfo, loadCustomClasses, saveCustomClass, loadAllergies } from '@/lib/storage'
 import type { PeriodInfo, CustomClass } from '@/lib/storage'
 import { formatNeisDate, PERIOD_TIMES } from '@/lib/neis'
 import type { DayTimetable, MealInfo } from '@/lib/neis'
 import WeekdayTabs from '@/components/WeekdayTabs'
 import PeriodCard from '@/components/PeriodCard'
+import MealBottomSheet from '@/components/MealBottomSheet'
 
 function getWeekOfMonth(monday: Date): { month: number; week: number } {
   return {
@@ -81,6 +82,7 @@ export default function TimetablePage() {
   const [addSubject, setAddSubject] = useState('')
   const [addTeacher, setAddTeacher] = useState('')
   const [addClassroom, setAddClassroom] = useState('')
+  const [mealSheetOpen, setMealSheetOpen] = useState(false)
 
   useEffect(() => {
     setPeriodInfos(loadPeriodInfos())
@@ -143,6 +145,8 @@ export default function TimetablePage() {
   selectedDateObj.setDate(monday.getDate() + selectedDay - 1)
   const selectedDateStr = `${selectedDateObj.getFullYear()}-${String(selectedDateObj.getMonth() + 1).padStart(2, '0')}-${String(selectedDateObj.getDate()).padStart(2, '0')}`
   const todayMeal = meals[selectedDateStr]
+  const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
+  const selectedDateLabel = `${selectedDateObj.getMonth() + 1}월 ${selectedDateObj.getDate()}일 (${DAY_LABELS[selectedDateObj.getDay()]})`
 
   function openInfo(period: number, subject: string) {
     const key = `${selectedDay}-${period}`
@@ -265,7 +269,10 @@ export default function TimetablePage() {
                     }
                   />
                   {entry.period === 4 && (
-                    <div className={`mt-2 bg-white rounded-xl px-4 py-3 flex items-start gap-3 transition-opacity ${lunchNow ? 'ring-2 ring-green-400' : ''} ${lunchPast ? 'opacity-40' : ''}`}>
+                    <div
+                      className={`mt-2 bg-white rounded-xl px-4 py-3 flex items-start gap-3 transition-opacity ${lunchNow ? 'ring-2 ring-green-400' : ''} ${lunchPast ? 'opacity-40' : ''} ${todayMeal ? 'cursor-pointer' : ''}`}
+                      onClick={todayMeal ? () => setMealSheetOpen(true) : undefined}
+                    >
                       <div className="w-8 h-8 rounded-full bg-green-400 flex items-center justify-center shrink-0 mt-0.5">
                         <span className="text-white text-sm">🍚</span>
                       </div>
@@ -275,13 +282,13 @@ export default function TimetablePage() {
                           {lunchNow ? '진행 중 · ' : ''}12:50 – 13:50
                           {todayMeal?.calories ? ` · ${todayMeal.calories}` : ''}
                         </p>
-                        {todayMeal && todayMeal.items.length > 0 && (
-                          <p className="text-xs text-gray-500 mt-1 truncate">
-                            {todayMeal.items.slice(0, 4).map((i) => i.name).join(' · ')}
-                            {todayMeal.items.length > 4 ? ` 외 ${todayMeal.items.length - 4}` : ''}
-                          </p>
-                        )}
                       </div>
+                      {todayMeal && (
+                        <div className="flex items-center gap-1 shrink-0 self-center">
+                          <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
+                          <span className="text-xs text-green-500 font-medium">메뉴</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -352,6 +359,16 @@ export default function TimetablePage() {
           </div>
         )
       })()}
+
+      {/* 급식 바텀 시트 */}
+      {mealSheetOpen && todayMeal && (
+        <MealBottomSheet
+          meal={todayMeal}
+          allergies={loadAllergies()}
+          date={selectedDateLabel}
+          onClose={() => setMealSheetOpen(false)}
+        />
+      )}
 
       {/* 정보 모달 */}
       {infoModal && (() => {
