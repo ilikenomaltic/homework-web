@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { loadSettings, loadPeriodInfos, savePeriodInfo, loadCustomClasses, saveCustomClass } from '@/lib/storage'
 import type { PeriodInfo, CustomClass } from '@/lib/storage'
 import { formatNeisDate, PERIOD_TIMES } from '@/lib/neis'
-import type { DayTimetable } from '@/lib/neis'
+import type { DayTimetable, MealInfo } from '@/lib/neis'
 import WeekdayTabs from '@/components/WeekdayTabs'
 import PeriodCard from '@/components/PeriodCard'
 
@@ -71,6 +71,7 @@ export default function TimetablePage() {
   const [fetchError, setFetchError] = useState(false)
   const [periodInfos, setPeriodInfos] = useState<Record<string, PeriodInfo>>({})
   const [customClasses, setCustomClasses] = useState<Record<string, CustomClass>>({})
+  const [meals, setMeals] = useState<Record<string, MealInfo>>({})
   const [infoModal, setInfoModal] = useState<{ period: number; subject: string } | null>(null)
   const [infoTeacher, setInfoTeacher] = useState('')
   const [infoClassroom, setInfoClassroom] = useState('')
@@ -106,9 +107,24 @@ export default function TimetablePage() {
       level: school.level,
     })
 
-    fetch(`/api/neis/timetable?${params}`)
-      .then((r) => r.json())
-      .then((data) => { setTimetable(data.timetable ?? []); setLoading(false) })
+    const mealParams = new URLSearchParams({
+      region: school.region,
+      code: school.code,
+      from: formatNeisDate(monday),
+      to: formatNeisDate(friday),
+    })
+
+    Promise.all([
+      fetch(`/api/neis/timetable?${params}`).then((r) => r.json()),
+      fetch(`/api/neis/meal?${mealParams}`).then((r) => r.json()).catch(() => ({ meals: [] })),
+    ])
+      .then(([ttData, mealData]) => {
+        setTimetable(ttData.timetable ?? [])
+        const mealMap: Record<string, MealInfo> = {}
+        for (const m of (mealData.meals ?? []) as MealInfo[]) mealMap[m.date] = m
+        setMeals(mealMap)
+        setLoading(false)
+      })
       .catch(() => { setFetchError(true); setLoading(false) })
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -122,6 +138,11 @@ export default function TimetablePage() {
   const pastPeriods = isToday ? getPastPeriods() : []
   const lunchNow = isToday && isLunchTime()
   const lunchPast = isToday && isLunchPast()
+
+  const selectedDateObj = new Date(monday)
+  selectedDateObj.setDate(monday.getDate() + selectedDay - 1)
+  const selectedDateStr = `${selectedDateObj.getFullYear()}-${String(selectedDateObj.getMonth() + 1).padStart(2, '0')}-${String(selectedDateObj.getDate()).padStart(2, '0')}`
+  const todayMeal = meals[selectedDateStr]
 
   function openInfo(period: number, subject: string) {
     const key = `${selectedDay}-${period}`
@@ -244,15 +265,22 @@ export default function TimetablePage() {
                     }
                   />
                   {entry.period === 4 && (
-                    <div className={`mt-2 bg-white rounded-xl px-4 py-3 flex items-center gap-3 transition-opacity ${lunchNow ? 'ring-2 ring-green-400' : ''} ${lunchPast ? 'opacity-40' : ''}`}>
-                      <div className="w-8 h-8 rounded-full bg-green-400 flex items-center justify-center shrink-0">
+                    <div className={`mt-2 bg-white rounded-xl px-4 py-3 flex items-start gap-3 transition-opacity ${lunchNow ? 'ring-2 ring-green-400' : ''} ${lunchPast ? 'opacity-40' : ''}`}>
+                      <div className="w-8 h-8 rounded-full bg-green-400 flex items-center justify-center shrink-0 mt-0.5">
                         <span className="text-white text-sm">🍚</span>
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900">점심시간</p>
                         <p className={`text-xs ${lunchNow ? 'text-green-500 font-medium' : 'text-gray-400'}`}>
                           {lunchNow ? '진행 중 · ' : ''}12:50 – 13:50
+                          {todayMeal?.calories ? ` · ${todayMeal.calories}` : ''}
                         </p>
+                        {todayMeal && todayMeal.items.length > 0 && (
+                          <p className="text-xs text-gray-500 mt-1 truncate">
+                            {todayMeal.items.slice(0, 4).map((i) => i.name).join(' · ')}
+                            {todayMeal.items.length > 4 ? ` 외 ${todayMeal.items.length - 4}` : ''}
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}

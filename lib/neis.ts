@@ -120,6 +120,61 @@ export function parseTimetableRows(rows: Record<string, any>[], weekStart: Date)
   })
 }
 
+// ── 급식 ──────────────────────────────────────────────────────
+export interface MealItem {
+  name: string
+  allergens: number[]
+}
+
+export interface MealInfo {
+  date: string
+  items: MealItem[]
+  calories: string
+}
+
+export const ALLERGY_LABELS: Record<number, { name: string; emoji: string }> = {
+  1:  { name: '난류',     emoji: '🥚' },
+  2:  { name: '우유',     emoji: '🥛' },
+  3:  { name: '메밀',     emoji: '🌿' },
+  4:  { name: '땅콩',     emoji: '🥜' },
+  5:  { name: '대두',     emoji: '🫘' },
+  6:  { name: '밀',       emoji: '🌾' },
+  7:  { name: '고등어',   emoji: '🐟' },
+  8:  { name: '게',       emoji: '🦀' },
+  9:  { name: '새우',     emoji: '🍤' },
+  10: { name: '돼지고기', emoji: '🐖' },
+  11: { name: '복숭아',   emoji: '🍑' },
+  12: { name: '토마토',   emoji: '🍅' },
+  13: { name: '아황산류', emoji: '⚗️' },
+  14: { name: '호두',     emoji: '🌰' },
+  15: { name: '닭고기',   emoji: '🍗' },
+  16: { name: '쇠고기',   emoji: '🐄' },
+  17: { name: '오징어',   emoji: '🦑' },
+  18: { name: '조개류',   emoji: '🦪' },
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function parseMealRows(rows: Record<string, any>[]): MealInfo[] {
+  return rows.flatMap((row) => {
+    const dateStr = row['MLSV_YMD']?.toString() ?? ''
+    if (dateStr.length !== 8) return []
+    const date = `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`
+    const raw: string = row['DDISH_NM'] ?? ''
+    const items: MealItem[] = raw
+      .split(/<br\s*\/?>/i)
+      .map((part) => {
+        const allergens = Array.from(part.matchAll(/\(([\d.]+)\)/g))
+          .flatMap((m) => m[1].split('.').filter(Boolean).map(Number))
+          .filter((n) => n >= 1 && n <= 18)
+        const name = part.replace(/\s*\([\d.]+\)/g, '').trim()
+        return { name, allergens: Array.from(new Set(allergens)) }
+      })
+      .filter((item) => item.name)
+    const calories: string = row['CAL_INFO'] ?? ''
+    return [{ date, items, calories }]
+  })
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseScheduleRows(rows: Record<string, any>[]): CalendarEvent[] {
   return rows.flatMap((row, i) => {

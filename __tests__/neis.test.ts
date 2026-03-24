@@ -6,6 +6,7 @@ import {
   getTimetableEndpoint,
   formatNeisDate,
   PERIOD_TIMES,
+  parseMealRows,
 } from '@/lib/neis'
 
 describe('parseSchoolLevel', () => {
@@ -101,5 +102,40 @@ describe('PERIOD_TIMES', () => {
   })
   it('5교시 시작 13:50 (점심 이후)', () => {
     expect(PERIOD_TIMES[5].start).toBe('13:50')
+  })
+})
+
+describe('parseMealRows', () => {
+  it('NEIS rows → MealInfo 배열', () => {
+    const rows = [
+      { MLSV_YMD: '20260324', DDISH_NM: '쌀밥(5.) <br/> 계란후라이(1.2.) <br/> 깍두기(9.)', CAL_INFO: '850 Kcal', MMEAL_SC_CODE: '2' },
+    ]
+    const result = parseMealRows(rows)
+    expect(result).toHaveLength(1)
+    expect(result[0].date).toBe('2026-03-24')
+    expect(result[0].calories).toBe('850 Kcal')
+    expect(result[0].items).toHaveLength(3)
+    expect(result[0].items[0].name).toBe('쌀밥')
+    expect(result[0].items[0].allergens).toEqual([5])
+    expect(result[0].items[1].name).toBe('계란후라이')
+    expect(result[0].items[1].allergens).toEqual([1, 2])
+  })
+
+  it('날짜 없는 row 무시', () => {
+    expect(parseMealRows([{ DDISH_NM: '쌀밥', CAL_INFO: '' }])).toHaveLength(0)
+  })
+
+  it('bare digit 포함 메뉴명 보존 — "100% 현미밥"', () => {
+    const rows = [
+      { MLSV_YMD: '20260324', DDISH_NM: '100% 현미밥(5.)', CAL_INFO: '' },
+    ]
+    expect(parseMealRows(rows)[0].items[0].name).toBe('100% 현미밥')
+  })
+
+  it('알레르기 없는 항목 allergens 빈 배열', () => {
+    const rows = [
+      { MLSV_YMD: '20260324', DDISH_NM: '깍두기', CAL_INFO: '' },
+    ]
+    expect(parseMealRows(rows)[0].items[0].allergens).toEqual([])
   })
 })
